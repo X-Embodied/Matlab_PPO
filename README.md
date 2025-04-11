@@ -1,126 +1,126 @@
-# Matlab PPO 强化学习框架
+# MATLAB PPO Reinforcement Learning Framework
 
-这是一个基于MATLAB的强化学习框架，包含近端策略优化（Proximal Policy Optimization, PPO）算法及其多智能体扩展版本（MAPPO），支持GPU加速和并行计算，适用于控制系统研究和工程应用。
+This is a MATLAB-based reinforcement learning framework that implements Proximal Policy Optimization (PPO) algorithm and its multi-agent extension (MAPPO), supporting GPU acceleration and parallel computing, suitable for control system research and engineering applications.
 
-> 详细的算法原理、实现细节和高级功能请参考 [TUTORIAL.md](TUTORIAL.md)
+> For Chinese version, please refer to [README_zh.md](README_zh.md)
 
-## 算法简介
+## Algorithm Introduction
 
-### PPO (近端策略优化)
-- 基于策略梯度的强化学习算法，使用裁剪目标函数限制策略更新幅度
-- 支持连续和离散动作空间
-- 提供稳定、高效的训练过程
+### PPO (Proximal Policy Optimization)
+- Policy gradient-based reinforcement learning algorithm with clipped objective function to limit policy updates
+- Supports both continuous and discrete action spaces
+- Provides stable and efficient training process
 
-### MAPPO (多智能体PPO)
-- PPO的多智能体扩展版本
-- 采用"集中训练，分散执行"架构
-- 为需要智能体协同合作的任务提供解决方案
+### MAPPO (Multi-Agent PPO)
+- Multi-agent extension of PPO
+- Uses "centralized training with decentralized execution" architecture
+- Provides solutions for tasks requiring agent collaboration
 
-## 支持的环境
+## Supported Environments
 
-框架内置四种控制场景：
+The framework includes four control scenarios:
 
-1. **倒立摆 (CartPole)**
-   - 经典控制问题，通过左右移动小车平衡竖直摆杆
-   - 离散动作空间示例
+1. **CartPole**
+   - Classic control problem balancing an inverted pendulum
+   - Example of discrete action space
 
-2. **直流电机控制**
-   - 调节电机转速以跟踪目标速度
-   - 连续动作空间示例
-   - 包含电气和机械系统动态模型
+2. **DC Motor Control**
+   - Regulates motor speed to track target velocity
+   - Example of continuous action space
+   - Includes electrical and mechanical system dynamics
 
-3. **交流电机FOC控制**
-   - 实现交流感应电机的磁场定向控制
-   - 高级工业控制问题示例
-   - 涉及复杂的坐标变换和动态模型
+3. **AC Motor FOC Control**
+   - Implements Field-Oriented Control for AC induction motors
+   - Example of advanced industrial control problem
+   - Involves complex coordinate transformations and dynamics
 
-4. **双倒立摆系统**
-   - 多智能体协同控制示例
-   - 展示MAPPO算法的优势
-   - 两个连接的摆杆需要协同控制以保持平衡
+4. **Double Inverted Pendulum System**
+   - Multi-agent cooperative control example
+   - Demonstrates advantages of MAPPO algorithm
+   - Two connected pendulums require coordinated control to maintain balance
 
-## 快速入门
+## Quick Start
 
-### 安装要求
-- MATLAB R2019b 或更高版本
+### Requirements
+- MATLAB R2019b or later
 - Deep Learning Toolbox
-- Parallel Computing Toolbox (可选，用于并行数据收集)
-- GPU 支持 (可选，但推荐用于加速训练)
+- Parallel Computing Toolbox (optional, for parallel data collection)
+- GPU support (optional but recommended for faster training)
 
-### 使用步骤
+### Usage Steps
 
-#### 1. 运行示例
+#### 1. Run Examples
 
 ```matlab
-% 训练倒立摆控制器
+% Train CartPole controller
 cd examples
-train_cartpole  % 训练模型
-test_cartpole   % 测试训练结果
+train_cartpole  % Train model
+test_cartpole   % Test trained model
 
-% 训练直流电机控制器
+% Train DC motor controller
 train_dcmotor
 test_dcmotor
 
-% 训练交流电机FOC控制器
+% Train AC motor FOC controller
 train_acmotor
 test_acmotor
 
-% 训练多智能体双倒立摆控制器
+% Train multi-agent double pendulum controller
 train_doublependulum
 test_doublependulum
 ```
 
-#### 2. 自定义配置
+#### 2. Custom Configuration
 
 ```matlab
-% 创建和修改配置
+% Create and modify configuration
 config = PPOConfig();
-config.gamma = 0.99;             % 折扣因子
-config.epsilon = 0.2;            % 裁剪参数
-config.actorLearningRate = 3e-4; % 策略网络学习率
-config.useGPU = true;            % 启用GPU加速
+config.gamma = 0.99;             % Discount factor
+config.epsilon = 0.2;           % Clip parameter
+config.actorLearningRate = 3e-4; % Policy network learning rate
+config.useGPU = true;            % Enable GPU acceleration
 
-% 使用自定义配置训练
+% Train with custom configuration
 agent = PPOAgent(env, config);
 agent.train();
 ```
 
-#### 3. 保存和加载模型
+#### 3. Save and Load Models
 
 ```matlab
-% 保存训练好的模型
+% Save trained model
 agent.save('my_trained_model.mat');
 
-% 加载模型
+% Load model
 agent = PPOAgent.load('my_trained_model.mat', env);
 ```
 
-## 目录结构
+## Directory Structure
 
 ```
 Matlab_PPO/
-├── core/               # 核心算法实现
-├── environments/       # 环境实现
-├── config/             # 配置文件
-├── utils/              # 工具函数
-├── examples/           # 示例脚本
-└── logs/               # 日志和模型保存目录
+├── core/               # Core algorithm implementation
+├── environments/       # Environment implementations
+├── config/             # Configuration files
+├── utils/              # Utility functions
+├── examples/           # Example scripts
+└── logs/               # Logs and model saving directory
 ```
 
-## 文档
+## Documentation
 
-- [TUTORIAL.md](TUTORIAL.md) - 详细的算法教程和实现细节
-- API文档可通过MATLAB的`help`命令获取，例如：
+- [TUTORIAL.md](TUTORIAL.md) - Detailed algorithm tutorial and implementation details
+- API documentation available via MATLAB `help` command, e.g.:
   ```matlab
   help PPOAgent
   help Environment
   help DCMotorEnv
   ```
 
-## 贡献
+## Contribution
 
-欢迎通过Issue和Pull Request提交改进建议和贡献代码。
+Welcome to submit improvements and code contributions via Issues and Pull Requests.
 
-## 许可证
+## License
 
-MIT许可证
+MIT License
