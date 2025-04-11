@@ -1,478 +1,482 @@
-# Matlab PPO 强化学习框架详细教程
+# Matlab PPO Reinforcement Learning Framework Detailed Tutorial
 
-本教程提供了对Matlab PPO强化学习框架的深入解释，包括算法原理、实现细节、环境模型说明和扩展指南。
+> For Chinese version, please refer to [TUTORIAL_zh.md](TUTORIAL_zh.md)
 
-## 目录
+# Matlab PPO Reinforcement Learning Framework Detailed Tutorial
 
-1. [算法详解](#算法详解)
-   - [PPO算法原理](#PPO算法原理)
-   - [MAPPO算法扩展](#MAPPO算法扩展)
-2. [环境模型详解](#环境模型详解)
-   - [倒立摆(CartPole)](#倒立摆)
-   - [直流电机控制](#直流电机控制)
-   - [交流感应电机FOC控制](#交流感应电机FOC控制)
-   - [双倒立摆系统](#双倒立摆系统)
-3. [框架实现细节](#框架实现细节)
-   - [核心类说明](#核心类说明)
-   - [网络结构设计](#网络结构设计)
-   - [训练流程说明](#训练流程说明)
-4. [高级应用指南](#高级应用指南)
-   - [超参数调优](#超参数调优)
-   - [自定义环境开发](#自定义环境开发)
-   - [多智能体系统设计](#多智能体系统设计)
-5. [性能优化与调试](#性能优化与调试)
-   - [GPU加速](#GPU加速)
-   - [并行计算](#并行计算)
-   - [常见问题排查](#常见问题排查)
+This tutorial provides an in-depth explanation of the Matlab PPO reinforcement learning framework, including algorithm principles, implementation details, environment model descriptions and extension guidelines.
 
-## 算法详解
+## Table of Contents
 
-### PPO算法原理
+1. [Algorithm Details](#algorithm-details)
+   - [PPO Algorithm Principles](#ppo-algorithm-principles)
+   - [MAPPO Algorithm Extension](#mappo-algorithm-extension)
+2. [Environment Models](#environment-models)
+   - [CartPole](#cartpole)
+   - [DC Motor Control](#dc-motor-control)
+   - [AC Induction Motor FOC Control](#ac-induction-motor-foc-control)
+   - [Double Pendulum System](#double-pendulum-system)
+3. [Framework Implementation Details](#framework-implementation-details)
+   - [Core Classes](#core-classes)
+   - [Network Architecture](#network-architecture)
+   - [Training Process](#training-process)
+4. [Advanced Application Guide](#advanced-application-guide)
+   - [Hyperparameter Tuning](#hyperparameter-tuning)
+   - [Custom Environment Development](#custom-environment-development)
+   - [Multi-Agent System Design](#multi-agent-system-design)
+5. [Performance Optimization and Debugging](#performance-optimization-and-debugging)
+   - [GPU Acceleration](#gpu-acceleration)
+   - [Parallel Computing](#parallel-computing)
+   - [Troubleshooting](#troubleshooting)
 
-PPO（近端策略优化）算法是一种策略梯度方法，旨在平衡样本效率和实现简单性。它通过在策略更新时引入一个裁剪项来限制新旧策略之间的差异，从而防止过大的策略更新。
+## Algorithm Details
 
-#### 核心数学原理
+### PPO Algorithm Principles
 
-PPO的目标函数为：
+PPO (Proximal Policy Optimization) is a policy gradient method that balances sample efficiency and implementation simplicity. It introduces a clipping term during policy updates to limit the difference between old and new policies, preventing excessively large policy updates.
+
+#### Core Mathematical Principles
+
+The PPO objective function is:
 
 $$L^{CLIP}(\theta) = \hat{E}_t\left[\min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)\right]$$
 
-其中：
-- $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ 表示新旧策略之间的概率比
-- $\hat{A}_t$ 是优势函数估计
-- $\epsilon$ 是裁剪参数，通常设为0.2
+Where:
+- $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ represents the probability ratio between old and new policies
+- $\hat{A}_t$ is the advantage function estimate
+- $\epsilon$ is the clipping parameter, typically set to 0.2
 
-#### 算法步骤
+#### Algorithm Steps
 
-1. **采样**：使用当前策略 $\pi_{\theta_{old}}$ 收集一批轨迹数据
-2. **优势估计**：计算每个状态-动作对的优势估计 $\hat{A}_t$
-3. **策略更新**：通过多次小批量梯度上升最大化裁剪目标
-4. **价值函数更新**：更新价值函数以更好地估计回报
+1. **Sampling**: Collect a batch of trajectory data using current policy $\pi_{\theta_{old}}$
+2. **Advantage Estimation**: Calculate advantage estimates $\hat{A}_t$ for each state-action pair
+3. **Policy Update**: Maximize the clipped objective through multiple mini-batch gradient ascent steps
+4. **Value Function Update**: Update the value function to better estimate returns
 
-#### 广义优势估计(GAE)
+#### Generalized Advantage Estimation (GAE)
 
-PPO中通常使用GAE来计算优势函数，平衡偏差和方差：
+PPO typically uses GAE to calculate the advantage function, balancing bias and variance:
 
 $$\hat{A}_t = \delta_t + (\gamma\lambda)\delta_{t+1} + ... + (\gamma\lambda)^{T-t+1}\delta_{T-1}$$
 
-其中：
-- $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$ 是时间差分误差
-- $\gamma$ 是折扣因子
-- $\lambda$ 是GAE参数，控制偏差-方差权衡
+Where:
+- $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$ is the temporal difference error
+- $\gamma$ is the discount factor
+- $\lambda$ is the GAE parameter, controlling the bias-variance trade-off
 
-### MAPPO算法扩展
+### MAPPO Algorithm Extension
 
-MAPPO（多智能体PPO）是PPO的扩展，适用于多智能体环境。它采用CTDE（集中训练，分散执行）框架，允许在训练阶段利用全局信息，而在执行阶段仅使用局部观察。
+MAPPO (Multi-Agent PPO) is an extension of PPO for multi-agent environments. It adopts the CTDE (Centralized Training with Decentralized Execution) framework, allowing the use of global information during training while only using local observations during execution.
 
-#### 核心设计
+#### Core Design
 
-1. **独立策略网络**：每个智能体 $i$ 有自己的策略网络 $\pi_i(a_i|o_i)$，基于局部观察 $o_i$ 做决策
-2. **中央价值网络**：使用中央评论家网络 $V(s)$ 评估全局状态价值
-3. **协同训练**：考虑智能体间的交互，优化联合策略的回报
+1. **Independent Policy Networks**: Each agent $i$ has its own policy network $\pi_i(a_i|o_i)$, making decisions based on local observations $o_i$
+2. **Centralized Value Network**: Uses a centralized critic network $V(s)$ to evaluate global state value
+3. **Coordinated Training**: Considers interactions between agents to optimize joint policy returns
 
-#### 与单智能体PPO的区别
+#### Differences from Single-Agent PPO
 
-- **观察与状态分离**：每个智能体只获得局部观察，但价值网络可使用全局状态
-- **信用分配**：需要解决多智能体下的信用分配问题，即确定每个智能体对全局回报的贡献
-- **协作策略**：通过智能体间的隐式协调学习协作策略
+- **Observation-State Separation**: Each agent only receives local observations, but the value network can use global state
+- **Credit Assignment**: Needs to solve the credit assignment problem in multi-agent settings, determining each agent's contribution to global returns
+- **Collaborative Policy**: Learns cooperative strategies through implicit coordination between agents
 
-#### 应用场景
+#### Application Scenarios
 
-MAPPO特别适合以下场景：
-- 自然分布式的控制问题（如多关节机器人）
-- 需要协作的任务（如多智能体协同控制）
-- 任务需要专业化的智能体角色（如不同功能的控制器）
+MAPPO is particularly suitable for:
+- Naturally distributed control problems (e.g., multi-joint robots)
+- Tasks requiring cooperation (e.g., multi-agent collaborative control)
+- Tasks requiring specialized agent roles (e.g., controllers with different functions)
 
-## 环境模型详解
+## Environment Models
 
-### 倒立摆
+### CartPole
 
-倒立摆（CartPole）是一个经典的控制问题，也是强化学习入门的标准测试环境。
+CartPole is a classic control problem and a standard test environment for reinforcement learning beginners.
 
-#### 物理模型
+#### Physical Model
 
-倒立摆系统由一个可水平移动的小车和一个连接在小车上的刚性摆杆组成。系统动力学可由以下微分方程描述：
+The CartPole system consists of a horizontally movable cart and a rigid pendulum connected to the cart. The system dynamics can be described by the following differential equations:
 
 $$\ddot{x} = \frac{F + m l \sin\theta (\dot{\theta})^2 - m g \cos\theta \sin\theta}{M + m \sin^2\theta}$$
 
 $$\ddot{\theta} = \frac{g \sin\theta - \ddot{x}\cos\theta}{l}$$
 
-其中：
-- $x$ 是小车位置
-- $\theta$ 是摆杆角度（相对于垂直向上方向）
-- $F$ 是施加于小车的力
-- $M$ 是小车质量
-- $m$ 是摆杆质量
-- $l$ 是摆杆半长
-- $g$ 是重力加速度
+Where:
+- $x$ is the cart position
+- $\theta$ is the pole angle (relative to vertical upward direction)
+- $F$ is the force applied to the cart
+- $M$ is the cart mass
+- $m$ is the pole mass
+- $l$ is the pole half-length
+- $g$ is the gravitational acceleration
 
-#### 强化学习设置
+#### Reinforcement Learning Setup
 
-- **状态空间**：$[x, \dot{x}, \theta, \dot{\theta}]$ 
-- **动作空间**：离散动作 {左移, 右移}
-- **奖励**：每个时间步+1，直到终止条件
-- **终止条件**：摆杆角度超过15度或小车位置偏离中心点超过2.4个单位
+- **State Space**: $[x, \dot{x}, \theta, \dot{\theta}]$ 
+- **Action Space**: Discrete actions {move left, move right}
+- **Reward**: +1 for each timestep until termination
+- **Termination Conditions**: Pole angle exceeds 15 degrees or cart position deviates more than 2.4 units from center
 
-在我们的实现中，`CartPoleEnv.m` 提供了完整的环境模拟，包括动力学更新、奖励计算和可视化功能。
+In our implementation, `CartPoleEnv.m` provides complete environment simulation including dynamics update, reward calculation and visualization functions.
 
-### 直流电机控制
+### DC Motor Control
 
-直流电机控制是一个基础的工业控制问题，涉及电气和机械系统的动态模型。
+DC motor control is a fundamental industrial control problem involving dynamic models of electrical and mechanical systems.
 
-#### 电机模型
+#### Motor Model
 
-直流电机的动态方程如下：
+The dynamic equations of a DC motor are as follows:
 
-**电气方程**:
+**Electrical Equation**:
 $$L\frac{di}{dt} = v - Ri - K_e\omega$$
 
-**机械方程**:
+**Mechanical Equation**:
 $$J\frac{d\omega}{dt} = K_ti - B\omega - T_L$$
 
-其中：
-- $v$ 是施加的电压
-- $i$ 是电机电流
-- $\omega$ 是电机角速度
-- $T_L$ 是负载转矩
-- $L$ 是电感
-- $R$ 是电阻
-- $K_t$ 是转矩常数
-- $K_e$ 是反电动势常数
-- $J$ 是转动惯量
-- $B$ 是摩擦系数
+Where:
+- $v$ is the applied voltage
+- $i$ is the motor current
+- $\omega$ is the motor angular velocity
+- $T_L$ is the load torque
+- $L$ is the inductance
+- $R$ is the resistance
+- $K_t$ is the torque constant
+- $K_e$ is the back EMF constant
+- $J$ is the moment of inertia
+- $B$ is the friction coefficient
 
-#### 强化学习设置
+#### Reinforcement Learning Setup
 
-- **状态空间**：$[\omega, i, \omega_{ref}, \omega_{ref} - \omega]$
-- **动作空间**：连续动作，代表施加的电压 $v \in [-V_{max}, V_{max}]$
-- **奖励**：结合速度跟踪误差、控制信号幅度和能量消耗
-- **终止条件**：达到最大步数或速度误差过大
+- **State Space**: $[\omega, i, \omega_{ref}, \omega_{ref} - \omega]$
+- **Action Space**: Continuous actions representing applied voltage $v \in [-V_{max}, V_{max}]$
+- **Reward**: Combines speed tracking error, control signal magnitude and energy consumption
+- **Termination Conditions**: Maximum steps reached or excessive speed error
 
-`DCMotorEnv.m` 实现了这一环境模型，包括离散化的动态方程求解、阶跃响应测试和负载扰动模拟。
+`DCMotorEnv.m` implements this environment model, including discretized dynamic equation solving, step response testing and load disturbance simulation.
 
-### 交流感应电机FOC控制
+### AC Induction Motor FOC Control
 
-交流感应电机控制是一个更复杂的问题，本框架实现了基于磁场定向控制(FOC)的交流电机控制策略学习。
+AC induction motor control is a more complex problem. This framework implements learning strategies for AC motor control based on Field-Oriented Control (FOC).
 
-#### FOC原理
+#### FOC Principles
 
-FOC通过坐标变换，将交流电机的控制转化为类似于直流电机的控制问题：
+FOC transforms AC motor control into a problem similar to DC motor control through coordinate transformation:
 
-1. **三相到两相变换**：将三相电流/电压($i_a$, $i_b$, $i_c$)转换为两相静止坐标系($i_\alpha$, $i_\beta$)
-2. **静止坐标到旋转坐标**：将静止坐标系转换为与转子磁场同步的旋转坐标系($i_d$, $i_q$)
-3. **在d-q坐标系控制**：在旋转坐标系中，$i_d$控制磁通，$i_q$控制转矩
+1. **Three-phase to Two-phase Transformation**: Converts three-phase currents/voltages ($i_a$, $i_b$, $i_c$) to two-phase stationary coordinate system ($i_\alpha$, $i_\beta$)
+2. **Stationary to Rotating Coordinates**: Transforms stationary coordinates to rotating coordinates ($i_d$, $i_q$) synchronized with rotor magnetic field
+3. **Control in d-q Coordinates**: In the rotating coordinate system, $i_d$ controls flux and $i_q$ controls torque
 
-#### 交流电机模型
+#### AC Motor Model
 
-在d-q旋转坐标系下，感应电机的电压方程为：
+In the d-q rotating coordinate system, the voltage equations of the induction motor are:
 
 $$v_d = R_si_d + \frac{d\lambda_d}{dt} - \omega_e\lambda_q$$
 $$v_q = R_si_q + \frac{d\lambda_q}{dt} + \omega_e\lambda_d$$
 
-磁链方程：
+Flux linkage equations:
 $$\lambda_d = L_di_d + L_mi_{dr}$$
 $$\lambda_q = L_qi_q + L_mi_{qr}$$
 
-#### 强化学习设置
+#### Reinforcement Learning Setup
 
-- **状态空间**：$[\omega_r, i_d, i_q, \omega_{ref}, \lambda_d, \lambda_q]$
-- **动作空间**：连续动作，代表d-q轴电压 $v_d$ 和 $v_q$
-- **奖励**：结合速度跟踪误差、磁链稳定性、电流限制和能量效率
+- **State Space**: $[\omega_r, i_d, i_q, \omega_{ref}, \lambda_d, \lambda_q]$
+- **Action Space**: Continuous actions representing d-q axis voltages $v_d$ and $v_q$
+- **Reward**: Combines speed tracking error, flux linkage stability, current limits and energy efficiency
 
-### 双倒立摆系统
+### Double Pendulum System
 
-双倒立摆系统是一个典型的多智能体协作问题，适合用MAPPO算法解决。
+The double pendulum system is a classic multi-agent collaboration problem, suitable for solving with MAPPO algorithm.
 
-#### 系统模型
+#### System Model
 
-双倒立摆系统由两个相连的刚性摆杆组成，每个摆杆通过一个独立执行器控制。系统的拉格朗日方程为：
+The double pendulum system consists of two connected rigid pendulum rods, each controlled by an independent actuator. The system's Lagrangian equation is:
 
 $$M(q)\ddot{q} + C(q,\dot{q})\dot{q} + G(q) = \tau$$
 
-其中：
-- $q = [\theta_1, \theta_2]^T$ 是摆杆角度向量
-- $M(q)$ 是质量矩阵
-- $C(q,\dot{q})$ 是科里奥利力和离心力项
-- $G(q)$ 是重力项
-- $\tau = [\tau_1, \tau_2]^T$ 是执行器施加的转矩
+Where:
+- $q = [\theta_1, \theta_2]^T$ is the pendulum angle vector
+- $M(q)$ is the mass matrix
+- $C(q,\dot{q})$ represents Coriolis and centrifugal terms
+- $G(q)$ is the gravity term
+- $\tau = [\tau_1, \tau_2]^T$ is the torque applied by actuators
 
-#### 多智能体强化学习设置
+#### Multi-Agent Reinforcement Learning Setup
 
-- **每个智能体的观察**：每个智能体观察自己摆杆的状态以及有限的相邻摆杆信息
-- **动作空间**：每个智能体控制一个执行器的转矩 $\tau_i$
-- **全局状态**：整个系统的完整动力学状态
-- **联合奖励**：基于系统稳定性的共享奖励函数
+- **Agent Observations**: Each agent observes its own pendulum state and limited information about adjacent pendulums
+- **Action Space**: Each agent controls an actuator torque $\tau_i$
+- **Global State**: Complete dynamic state of the entire system
+- **Joint Reward**: Shared reward function based on system stability
 
-`DoublePendulumEnv.m` 实现了这一环境，并提供了多智能体接口以支持MAPPO算法的训练。
+`DoublePendulumEnv.m` implements this environment and provides multi-agent interfaces to support MAPPO algorithm training.
 
-## 框架实现细节
+## Framework Implementation Details
 
-### 核心类说明
+### Core Classes
 
-#### PPOAgent类
+#### PPOAgent Class
 
-`PPOAgent.m` 是单智能体PPO算法的核心实现，主要方法包括：
+`PPOAgent.m` is the core implementation of single-agent PPO algorithm, with main methods including:
 
-- **collectTrajectories**：收集智能体与环境交互的轨迹
-- **computeGAE**：使用广义优势估计计算优势值
-- **updatePolicy**：根据收集的数据更新策略和价值网络
-- **train**：执行完整的训练循环
-- **getAction**：获取给定观察下的动作
+- **collectTrajectories**: Collects agent-environment interaction trajectories
+- **computeGAE**: Calculates advantage values using Generalized Advantage Estimation
+- **updatePolicy**: Updates policy and value networks based on collected data
+- **train**: Executes complete training loop
+- **getAction**: Gets action for given observation
 
-关键属性包括策略网络、价值网络和各种训练参数。
+Key attributes include policy network, value network and various training parameters.
 
-#### MAPPOAgent类
+#### MAPPOAgent Class
 
-`MAPPOAgent.m` 扩展了PPO算法到多智能体情境，其主要特点：
+`MAPPOAgent.m` extends PPO algorithm to multi-agent scenarios, with main features:
 
-- 管理多个智能体的策略网络（Actors）
-- 使用中央评论家网络（Critic）估计联合价值函数
-- 协调多个智能体的轨迹收集和策略更新
+- Manages policy networks (Actors) for multiple agents
+- Uses centralized critic network to estimate joint value function
+- Coordinates trajectory collection and policy updates for multiple agents
 
-#### ActorNetwork与CriticNetwork
+#### ActorNetwork and CriticNetwork
 
-- **ContinuousActorNetwork.m**：实现连续动作空间的策略网络
-- **DiscreteActorNetwork.m**：实现离散动作空间的策略网络
-- **CriticNetwork.m**：实现状态价值估计网络
+- **ContinuousActorNetwork.m**: Implements policy network for continuous action spaces
+- **DiscreteActorNetwork.m**: Implements policy network for discrete action spaces
+- **CriticNetwork.m**: Implements state value estimation network
 
-这些网络类封装了网络结构、前向传播和梯度计算等功能。
+These network classes encapsulate network structure, forward propagation and gradient calculation functions.
 
-### 网络结构设计
+### Network Architecture Design
 
-#### 策略网络
+#### Policy Network
 
-策略网络(Actor)通常由以下部分组成：
-
-```
-观察输入 -> 全连接层 -> ReLU -> 全连接层 -> ReLU -> 输出层
-```
-
-对于连续动作空间，输出层生成动作均值和标准差；对于离散动作空间，输出层生成动作概率分布。
-
-#### 价值网络
-
-价值网络(Critic)结构类似：
+The policy network (Actor) typically consists of the following components:
 
 ```
-状态输入 -> 全连接层 -> ReLU -> 全连接层 -> ReLU -> 标量输出(状态价值)
+Observation Input -> Fully Connected Layer -> ReLU -> Fully Connected Layer -> ReLU -> Output Layer
 ```
 
-对于MAPPO，价值网络接收联合观察作为输入，评估全局状态价值。
+For continuous action spaces, the output layer generates action mean and standard deviation; for discrete action spaces, the output layer generates action probability distribution.
 
-### 训练流程说明
+#### Value Network
 
-以下是PPO训练的典型流程：
+The value network (Critic) has a similar structure:
 
-1. **初始化网络**：创建策略和价值网络
-2. **循环训练**：
-   - 收集与环境交互的轨迹数据
-   - 计算回报和优势估计
-   - 更新策略网络（多次小批量更新）
-   - 更新价值网络
-   - 记录和可视化训练数据
-3. **保存模型**：将训练好的网络参数保存到文件
+```
+State Input -> Fully Connected Layer -> ReLU -> Fully Connected Layer -> ReLU -> Scalar Output (State Value)
+```
 
-MAPPO训练流程类似，但需要协调多个智能体的数据收集和策略更新。
+For MAPPO, the value network receives joint observations as input to evaluate global state value.
 
-## 高级应用指南
+### Training Process Description
 
-### 超参数调优
+The typical PPO training process is as follows:
 
-强化学习算法对超参数非常敏感，以下是关键超参数及其调整建议：
+1. **Network Initialization**: Create policy and value networks
+2. **Training Loop**:
+   - Collect trajectory data through environment interaction
+   - Calculate returns and advantage estimates
+   - Update policy network (multiple mini-batch updates)
+   - Update value network
+   - Record and visualize training data
+3. **Model Saving**: Save trained network parameters to file
 
-- **PPO裁剪参数(epsilon)**：通常设为0.1-0.3，控制策略更新幅度
-- **折扣因子(gamma)**：通常设为0.95-0.99，控制未来奖励的重要性
-- **GAE参数(lambda)**：通常设为0.9-0.99，控制偏差-方差权衡
-- **学习率**：策略和价值网络的学习率，通常在1e-4到1e-3范围内
-- **网络规模**：隐藏层大小和层数，取决于任务复杂度
+The MAPPO training process is similar but requires coordination of data collection and policy updates for multiple agents.
 
-对于复杂环境，建议使用网格搜索或贝叶斯优化来找到最佳超参数组合。
+## Advanced Application Guide
 
-### 自定义环境开发
+### Hyperparameter Tuning
 
-创建自定义环境是扩展框架功能的重要方式。以下是开发新环境的基本步骤：
+Reinforcement learning algorithms are highly sensitive to hyperparameters. Here are key hyperparameters and tuning recommendations:
 
-1. **继承基类**：新环境应继承自`Environment`基类
-2. **实现必要方法**：
-   - `reset()`：重置环境到初始状态并返回初始观察
-   - `step(action)`：执行动作，更新环境状态并返回(下一个观察，奖励，是否结束，信息)
-   - `render()`：可选的可视化方法
+- **PPO clipping parameter (epsilon)**: Typically set to 0.1-0.3, controls policy update magnitude
+- **Discount factor (gamma)**: Typically set to 0.95-0.99, controls importance of future rewards
+- **GAE parameter (lambda)**: Typically set to 0.9-0.99, controls bias-variance tradeoff
+- **Learning rate**: For policy and value networks, usually in range 1e-4 to 1e-3
+- **Network size**: Hidden layer size and count, depends on task complexity
 
-#### 自定义环境示例
+For complex environments, grid search or Bayesian optimization is recommended to find optimal hyperparameter combinations.
+
+### Custom Environment Development
+
+Creating custom environments is an important way to extend the framework's functionality. Here are the basic steps for developing a new environment:
+
+1. **Inherit Base Class**: The new environment should inherit from the `Environment` base class
+2. **Implement Required Methods**:
+   - `reset()`: Reset the environment to initial state and return initial observation
+   - `step(action)`: Execute action, update environment state and return (next observation, reward, done, info)
+   - `render()`: Optional visualization method
+
+#### Custom Environment Example
 
 ```matlab
 classdef MyCustomEnv < Environment
     properties
-        % 环境状态变量
+        % Environment state variables
         state
         
-        % 环境参数
+        % Environment parameters
         param1
         param2
     end
     
     methods
         function obj = MyCustomEnv(config)
-            % 初始化环境参数
+            % Initialize environment parameters
             obj.param1 = config.param1Value;
             obj.param2 = config.param2Value;
             
-            % 定义观察和动作空间维度
+            % Define observation and action space dimensions
             obj.observationDimension = 4;
-            obj.continuousAction = true;  % 使用连续动作空间
+            obj.continuousAction = true;  % Use continuous action space
             obj.actionDimension = 2;
         end
         
         function observation = reset(obj)
-            % 重置环境状态
+            % Reset environment state
             obj.state = [0; 0; 0; 0];
             
-            % 返回初始观察
+            % Return initial observation
             observation = obj.state;
         end
         
         function [nextObs, reward, done, info] = step(obj, action)
-            % 验证动作
-            action = min(max(action, -1), 1);  % 裁剪动作到[-1,1]
+            % Validate action
+            action = min(max(action, -1), 1);  % Clip action to [-1,1]
             
-            % 更新环境状态
-            % ... 实现状态转移方程 ...
+            % Update environment state
+            % ... Implement state transition equations ...
             
-            % 计算奖励
+            % Calculate reward
             reward = calculateReward(obj, action);
             
-            % 检查是否结束
+            % Check termination condition
             done = checkTermination(obj);
             
-            % 返回结果
+            % Return results
             nextObs = obj.state;
-            info = struct();  % 可包含额外信息
+            info = struct();  % Can contain additional information
         end
         
         function render(obj)
-            % 实现可视化
+            % Implement visualization
             figure(1);
-            % ... 绘制环境状态 ...
+            % ... Draw environment state ...
             drawnow;
         end
         
         function reward = calculateReward(obj, action)
-            % 自定义奖励函数
-            % ... 计算奖励 ...
+            % Custom reward function
+            % ... Calculate reward ...
         end
         
         function done = checkTermination(obj)
-            % 检查终止条件
-            % ... 判断是否结束 ...
+            % Check termination conditions
+            % ... Determine if episode should end ...
         end
     end
 end
 ```
 
-### 多智能体系统设计
+### Multi-Agent System Design
 
-设计多智能体系统需要考虑以下关键点：
+Designing multi-agent systems requires consideration of the following key points:
 
-1. **环境接口**：多智能体环境应提供支持多个智能体的接口
-   - 提供`getNumAgents()`方法返回智能体数量
-   - `step(actions)`接收所有智能体的联合动作
-   - `reset()`返回每个智能体的初始观察
+1. **Environment Interface**: The multi-agent environment should provide interfaces supporting multiple agents
+   - Implement `getNumAgents()` method to return agent count
+   - `step(actions)` should receive joint actions from all agents
+   - `reset()` should return initial observations for each agent
 
-2. **观察和状态设计**：
-   - 明确区分局部观察（每个智能体可见）和全局状态（中央评论家可见）
-   - 定义观察函数`getObservation(agentIdx)`获取指定智能体的观察
+2. **Observation and State Design**:
+   - Clearly distinguish between local observations (visible to each agent) and global state (visible to centralized critic)
+   - Define observation function `getObservation(agentIdx)` to get specified agent's observation
 
-3. **奖励设计**：
-   - 共享奖励：所有智能体获得相同奖励，促进协作
-   - 个体奖励：每个智能体有自己的奖励函数，可能导致竞争
-   - 混合奖励：结合共享和个体奖励，平衡协作与特定任务目标
+3. **Reward Design**:
+   - Shared reward: All agents receive same reward to promote cooperation
+   - Individual reward: Each agent has its own reward function, which may lead to competition
+   - Hybrid reward: Combine shared and individual rewards to balance cooperation and specific task objectives
 
-## 性能优化与调试
+## Performance Optimization and Debugging
 
-### GPU加速
+### GPU Acceleration
 
-本框架支持MATLAB的GPU加速功能，显著提升训练速度：
+This framework supports MATLAB's GPU acceleration to significantly improve training speed:
 
 ```matlab
-% 在配置中启用GPU
+% Enable GPU in configuration
 config = PPOConfig();
 config.useGPU = true;
 
-% 确保网络参数在GPU上
+% Ensure network parameters are on GPU
 net = dlnetwork(netLayers);
 if config.useGPU && canUseGPU()
     net = dlupdate(@gpuArray, net);
 end
 ```
 
-使用GPU加速需要安装兼容的CUDA和GPU计算工具箱。对于大型网络，GPU加速可提升5-10倍的训练速度。
+Using GPU acceleration requires installing compatible CUDA and GPU computing toolboxes. For large networks, GPU acceleration can improve training speed by 5-10x.
 
-### 并行计算
+### Parallel Computing
 
-本框架利用MATLAB的并行计算工具箱进行数据收集的并行化：
+This framework utilizes MATLAB's Parallel Computing Toolbox for parallelizing data collection:
 
 ```matlab
-% 在配置中启用并行计算
+% Enable parallel computing in configuration
 config = PPOConfig();
 config.useParallel = true;
-config.numWorkers = 4;  % 并行工作进程数
+config.numWorkers = 4;  % Number of parallel workers
 
-% 并行收集轨迹
+% Parallel trajectory collection
 if config.useParallel
     parfor i = 1:numTrajectories
-        % ... 并行收集轨迹 ...
+        % ... Parallel collect trajectories ...
     end
 else
     for i = 1:numTrajectories
-        % ... 串行收集轨迹 ...
+        % ... Serial collect trajectories ...
     end
 end
 ```
 
-并行计算特别适合轨迹收集阶段，因为不同轨迹之间没有依赖关系。对于复杂环境和大量轨迹，可以实现接近线性的加速。
+Parallel computing is particularly suitable for trajectory collection as different trajectories have no dependencies. For complex environments and large numbers of trajectories, near-linear speedup can be achieved.
 
-### 常见问题排查
+### Troubleshooting
 
-#### 1. 训练不收敛
+#### 1. Training Not Converging
 
-可能的原因和解决方案：
-- **学习率过高**：尝试降低学习率
-- **网络结构不适合**：增加网络容量或调整结构
-- **奖励设计不合理**：重新设计更有指导性的奖励函数
-- **优势估计不准确**：调整GAE参数(lambda)
+Possible causes and solutions:
+- **Learning rate too high**: Try reducing learning rate
+- **Network structure unsuitable**: Increase network capacity or adjust structure
+- **Poor reward design**: Redesign more instructive reward function
+- **Inaccurate advantage estimation**: Adjust GAE parameter (lambda)
 
-#### 2. 训练过程不稳定
+#### 2. Unstable Training Process
 
-可能的原因和解决方案：
-- **批量大小太小**：增加批量大小以减少梯度估计的方差
-- **裁剪参数设置不当**：调整epsilon值(0.1-0.3)
-- **更新步数过多**：减少每批数据的更新次数
+Possible causes and solutions:
+- **Batch size too small**: Increase batch size to reduce gradient estimation variance
+- **Inappropriate clipping parameter**: Adjust epsilon value (0.1-0.3)
+- **Too many update steps**: Reduce the number of updates per batch of data
 
-#### 3. 多智能体协调问题
+#### 3. Multi-Agent Coordination Issues
 
-可能的原因和解决方案：
-- **观察空间设计不合理**：确保智能体有足够信息进行协作
-- **共享奖励比例问题**：调整共享与个体奖励的比例
-- **价值网络容量不足**：增加中央评论家网络的容量
+Possible causes and solutions:
+- **Poor observation space design**: Ensure agents have sufficient information for collaboration
+- **Shared reward ratio problem**: Adjust the ratio between shared and individual rewards
+- **Insufficient value network capacity**: Increase the capacity of the centralized critic network
 
-#### 4. 性能分析工具
+#### 4. Performance Analysis Tools
 
-使用MATLAB内置的性能分析工具：
+Using MATLAB's built-in performance analysis tools:
 ```matlab
-% 启用代码分析
+% Enable code profiling
 profile on
 
-% 运行要分析的代码
+% Run the code to be analyzed
 agent.train(env, 10);
 
-% 查看分析报告
+% View the profiling report
 profile viewer
 ```
 
-这有助于识别代码中的瓶颈并优化关键部分。
+This helps identify bottlenecks in the code and optimize critical sections.
 
-## 总结
+## Summary
 
-Matlab PPO框架提供了强大而灵活的基础设施，用于解决各种控制问题，从基础的倒立摆到复杂的多智能体系统。通过深入理解算法原理、实现细节和环境模型，用户可以充分利用本框架的能力，并根据自己的需求进行扩展和优化。
+The Matlab PPO framework provides powerful and flexible infrastructure for solving various control problems, from basic inverted pendulums to complex multi-agent systems. By deeply understanding the algorithm principles, implementation details and environment models, users can fully utilize the framework's capabilities and extend/optimize it according to their needs.
 
-无论是研究目的还是工程应用，本框架都提供了必要的工具和灵活性，以应对现代控制系统的挑战。随着强化学习领域的不断发展，我们也将持续更新和改进本框架，以保持其实用性和先进性。
+Whether for research or engineering applications, this framework provides the necessary tools and flexibility to address challenges in modern control systems. As reinforcement learning continues to evolve, we will keep updating and improving this framework to maintain its practicality and advancement.
