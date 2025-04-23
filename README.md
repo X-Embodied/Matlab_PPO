@@ -1,8 +1,9 @@
 # 🤖 Matlab PPO Reinforcement Learning Framework
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Matlab_PPO](https://img.shields.io/badge/Matlab_PPO-v1.0.0-blueviolet)]((https://github.com/AIResearcherHZ/Matlab_PPO))
 [![MATLAB](https://img.shields.io/badge/MATLAB-R2019b%2B-blue.svg)](https://www.mathworks.com/products/matlab.html)
 [![Deep Learning Toolbox](https://img.shields.io/badge/Deep%20Learning%20Toolbox-Required-green.svg)](https://www.mathworks.com/products/deep-learning.html)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A MATLAB-based reinforcement learning framework featuring Proximal Policy Optimization (PPO) algorithm and its multi-agent extension (MAPPO), with GPU acceleration and parallel computing support, suitable for control system research and engineering applications.
 

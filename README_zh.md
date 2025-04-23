@@ -1,8 +1,9 @@
 # 🤖 Matlab PPO 强化学习框架
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Matlab_PPO](https://img.shields.io/badge/Matlab_PPO-v1.0.0-blueviolet)]((https://github.com/AIResearcherHZ/Matlab_PPO))
 [![MATLAB](https://img.shields.io/badge/MATLAB-R2019b%2B-blue.svg)](https://www.mathworks.com/products/matlab.html)
 [![Deep Learning Toolbox](https://img.shields.io/badge/Deep%20Learning%20Toolbox-Required-green.svg)](https://www.mathworks.com/products/deep-learning.html)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 一个基于MATLAB的强化学习框架，实现了近端策略优化(PPO)算法及其多智能体扩展(MAPPO)，支持GPU加速和并行计算，适用于控制系统研究和工程应用。
 
