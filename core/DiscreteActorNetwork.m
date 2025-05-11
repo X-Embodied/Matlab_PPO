@@ -23,18 +23,18 @@ classdef DiscreteActorNetwork < handle
             
             % 初始化第一个隐藏层
             layerIdx = 1;
-            obj.learnables.fc1w = dlarray(initializeGlorot(layerSizes(1), inputSize), 'UW');
-            obj.learnables.fc1b = dlarray(zeros(layerSizes(1), 1), 'UB');
+            obj.learnables.fc1w = dlarray(initializeGlorot(layerSizes(1), inputSize), 'U');
+            obj.learnables.fc1b = dlarray(zeros(layerSizes(1), 1), 'U');
             
             % 初始化中间隐藏层
             for i = 2:length(layerSizes)
-                obj.learnables.(sprintf('fc%dw', i)) = dlarray(initializeGlorot(layerSizes(i), layerSizes(i-1)), 'UW');
-                obj.learnables.(sprintf('fc%db', i)) = dlarray(zeros(layerSizes(i), 1), 'UB');
+                obj.learnables.(sprintf('fc%dw', i)) = dlarray(initializeGlorot(layerSizes(i), layerSizes(i-1)), 'U');
+                obj.learnables.(sprintf('fc%db', i)) = dlarray(zeros(layerSizes(i), 1), 'U');
             end
             
             % 初始化输出层（logits）
-            obj.learnables.outw = dlarray(initializeGlorot(outputSize, layerSizes(end)), 'UW');
-            obj.learnables.outb = dlarray(zeros(outputSize, 1), 'UB');
+            obj.learnables.outw = dlarray(initializeGlorot(outputSize, layerSizes(end)), 'U');
+            obj.learnables.outb = dlarray(zeros(outputSize, 1), 'U');
         end
         
         function [action, logProb, probs] = sampleAction(obj, observation)

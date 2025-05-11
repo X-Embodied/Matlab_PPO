@@ -90,14 +90,6 @@ git clone https://github.com/AIResearcherHZ/Matlab_PPO.git
 cd Matlab_PPO
 ```
 
-2. **配置MATLAB环境**
-- 启动MATLAB
-- 导航到项目目录
-- 运行setup.m脚本进行环境配置：
-```matlab
-setup
-```
-
 ### 使用步骤
 
 #### 1. 运行示例

@@ -90,14 +90,6 @@ git clone https://github.com/AIResearcherHZ/Matlab_PPO.git
 cd Matlab_PPO
 ```
 
-2. **Configure MATLAB Environment**
-- Start MATLAB
-- Navigate to the project directory
-- Run setup.m script to configure the environment:
-```matlab
-setup
-```
-
 ### Usage Steps
 
 #### 1. Run Examples
