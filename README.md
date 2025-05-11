@@ -205,7 +205,7 @@ If you use this framework in your research, please cite:
   title = {Matlab PPO: A Reinforcement Learning Framework for Control Systems},
   year = {2025},
   publisher = {GitHub},
-  url = {https://github.com/AIResearcherHZ/Matlab_PPO}
+  url = {https://github.com/X-Embodied/Matlab_PPO}
 }
 ```
 
