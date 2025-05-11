@@ -209,7 +209,7 @@ Matlab_PPO/
 
 ```bibtex
 @misc{matlab_ppo,
-  author = {[Haozheng Xie]},
+  author = {},
   title = {Matlab PPO: A Reinforcement Learning Framework for Control Systems},
   year = {2025},
   publisher = {GitHub},
