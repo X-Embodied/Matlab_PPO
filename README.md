@@ -201,7 +201,7 @@ If you use this framework in your research, please cite:
 
 ```bibtex
 @misc{matlab_ppo,
-  author = {},
+  author = {Haozheng Xie},
   title = {Matlab PPO: A Reinforcement Learning Framework for Control Systems},
   year = {2025},
   publisher = {GitHub},
